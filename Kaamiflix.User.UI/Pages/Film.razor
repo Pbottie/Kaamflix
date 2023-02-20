@@ -1,0 +1,72 @@
+﻿@page "/Film/{Id:int}"
+@inject IMembershipService membershipService
+
+<a class="btn btn-outline-success rounded-0 mb-1" href="/">
+    <i class="oi oi-arrow-left" />
+    <div> Back to movies</div>
+</a>
+
+<div class="marquee d-flex flex-row-reverse justify-content-center">
+    @if (Model.Genres != null && Model.Director != null)
+    {
+        <div class="flex-column text-white">
+            <h3 class="text-info">@Model.Title</h3>
+            <h4>@Model.Description</h4>
+            <h6 class="text-primary">Director: @Model.Director.Name</h6>
+            <h6>Released: @Model.Released.ToString("yyyy-MM-dd")</h6>
+            <h6>
+                Genres:
+                @foreach (var genre in Model.Genres)
+                {
+                    @:@genre.Name <b> </b>
+                }
+            </h6>
+        </div>
+        <img class="m-2" src="@Model.MarqueeImageUrl" />
+    }
+
+</div>
+<div class="d-flex btn btn-success justify-content-center" style="width:90px;">
+    <a href="PlayFilm/@Model.Id">
+        <i class="oi oi-media-play text-white"> <strong class="text-white"> PLAY</strong></i>
+    </a>
+</div>
+
+<span class="text-light fs-3 text-decoration-underline">Similar Films</span>
+<div class="d-flex justify-content-start">
+    @if (Model.SimilarFilms != null)
+    {
+        @foreach (var SF in Model.SimilarFilms)
+        {
+            var result = Films.Where(f => f.Id.Equals(SF.SimilarFilmId)).FirstOrDefault();
+            if (result != null)
+            {
+                var sfDTO = result;
+                <FilmCard Film="sfDTO" />
+            }
+        }
+    }
+</div>
+
+
+
+@code {
+    [Parameter] public int Id { get; set; }
+    public FilmDTO Model { get; set; } = new();
+    public List<FilmDTO> Films { get; set; } = new();
+
+
+    protected override async void OnParametersSet()
+    {
+        Model = await membershipService.GetFilmAsync(Id);
+        //Films = await membershipService.GetFilmsAsync();
+        StateHasChanged();
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Model = await membershipService.GetFilmAsync(Id);
+        Films = await membershipService.GetFilmsAsync();
+    }
+}

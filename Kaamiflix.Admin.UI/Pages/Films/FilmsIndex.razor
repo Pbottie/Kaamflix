@@ -1,0 +1,35 @@
+﻿<table class="table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Director</th>
+            <th>Description</th>
+            <th>Released</th>
+            <th>Free</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var film in Model)
+        {
+            <tr>
+                <td>@film.Title</td>
+                <td>@film.Director.Name</td>
+                <td>@film.Description.Truncate(50)</td>
+                <td>@film.Released.ToString("yyyy-MM-dd")</td>
+                <td>@(film.Free ? "Free" : "")</td>
+                <td>
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-outline-primary me-1" @onclick="@(()=> OnClick.InvokeAsync(new ClickModel(PageType.Edit,film.Id)))">Edit</button>
+                        <button type="button" class="btn btn-outline-danger" @onclick="@(()=> OnClick.InvokeAsync(new ClickModel(PageType.Delete,film.Id)))">Delete</button>
+                    </div>
+                </td>
+
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter] public List<FilmDTO> Model { get; set; } = new();
+    [Parameter] public EventCallback<ClickModel> OnClick { get; set; }
+}

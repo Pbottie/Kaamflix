@@ -1,0 +1,75 @@
+﻿@inject IAdminService AdminService
+@if (!string.IsNullOrEmpty(Alert))
+{
+    <div class="d-flex">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Alert
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" @onclick="CloseAlert"></button>
+        </div>
+    </div>
+}
+
+@if (Navigation == PageType.Create)
+{
+    <ChangeFilm Page="@Navigation" OnChange="OnChange"></ChangeFilm>
+}
+
+@if (Navigation == PageType.Edit || Navigation == PageType.Delete)
+{
+    <ChangeFilm Page="@Navigation" OnChange="OnChange" Model="@Film"></ChangeFilm>
+}
+
+<div class="d-flex">
+    <a href="/" class="btn btn-outline-secondary rounded-0 me-1">Home</a>
+    <button type="button" class="btn btn-outline-primary rounded-0 me-1" @onclick="()=>ChangePageType(PageType.Index)">Index</button>
+    <button type="button" class="btn btn-outline-success rounded-0" @onclick="()=>ChangePageType(PageType.Create)">Create</button>
+</div>
+
+<FilmsIndex OnClick="OnClicks" Model="Model" />
+
+@code {
+    List<FilmDTO> Model { get; set; } = new();
+    public string Alert { get; set; } = string.Empty;
+    public string Navigation { get; set; } = PageType.Index;
+    public FilmDTO Film { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Alert = "";
+        Model = await AdminService.GetAsync<FilmDTO>("film?freeOnly=false");
+    }
+
+    public void ChangePageType(string pageType)
+    {
+        Navigation = pageType;
+    }
+
+    public void CloseAlert()
+    {
+        Alert = string.Empty;
+    }
+
+    async Task OnClicks(ClickModel model)
+    {
+        if (model.PageType.Equals(PageType.Edit) || model.PageType.Equals(PageType.Delete))
+        {
+            Film = await AdminService.SingleAsync<FilmDTO>($"film/{model.Id}") ?? new();
+        }
+        ChangePageType(model.PageType);
+    }
+
+    async Task OnChange(string alert)
+    {
+        try
+        {
+            Alert = alert;
+            Model = await AdminService.GetAsync<FilmDTO>($"film");
+            ChangePageType(PageType.Index);
+        }
+        catch (Exception)
+        {
+            Alert = "Error";
+        }
+    }
+
+}

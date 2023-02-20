@@ -1,0 +1,102 @@
+﻿@inject IAdminService AdminService
+
+<div class="d-xl-flex justify-content-center">
+    <EditForm Model="@Model" OnValidSubmit="OnFormSubmit" class="mb-5 border border-1 border-secondary p-2 w-25">
+        <h4>@Page FilmGenre</h4>
+        <DataAnnotationsValidator />
+        @if (@Page == PageType.Edit)
+        {
+            <div class="mb-2">
+                <InputText class="form-control" id="Title" @bind-Value=Model.Title disabled></InputText>
+                <ValidationMessage For="@(()=>Model.Title)" />
+            </div>
+            <div class="mb-2">
+                <select class="form-control" multiple @bind="SelectedGenres" style="height: 200px;">
+                    @foreach (var genre in Genres)
+                    {
+                        <option value="@genre.Id.ToString()">@genre.Name</option>
+                    }
+                </select>
+            </div>
+        }
+        @if (Page != PageType.Index)
+        {
+            <button type="submit" class="btn btn-success">Save</button>
+        }
+
+    </EditForm>
+</div>
+
+
+
+
+@code {
+    [Parameter] public string[] SelectedGenres { get; set; } = new string[] { };
+    [Parameter] public FilmDTO Model { get; set; } = new();
+    [Parameter] public string Page { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> OnChange { get; set; }
+    public List<GenreDTO> Genres { get; set; } = new();
+    public List<FilmGenreDTO> FilmGenres { get; set; } = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        Genres = await AdminService.GetAsync<GenreDTO>("genre");
+        FilmGenres = await AdminService.GetAsync<FilmGenreDTO>("filmgenre");
+    }
+
+
+    private async Task OnFormSubmit()
+    {
+        try
+        {
+            var firstSet = FilmGenres.Select(fg => fg).Where(fg => fg.FilmId.Equals(Model.Id));
+            var secondSet = CreateFilmGenreDTOList();
+
+            var toDelete = firstSet.ExceptBy(secondSet.Select(x => x.GenreId), y => y.GenreId);
+            var toCreate = secondSet.ExceptBy(firstSet.Select(x => x.GenreId), y => y.GenreId);
+
+            foreach (var delete in toDelete)
+            {
+                HttpRequestMessage deleteRequest = new HttpRequestMessage
+                    {
+                        Content = JsonContent.Create(delete),
+                        Method = HttpMethod.Delete,
+                        RequestUri = new Uri("filmgenre/", UriKind.Relative)
+                    };
+                await AdminService.SendAsync(deleteRequest);
+            }
+            foreach (var create in toCreate)
+            {
+                HttpRequestMessage createRequest = new HttpRequestMessage
+                    {
+                        Content = JsonContent.Create(create),
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri("filmgenre/", UriKind.Relative)
+                    };
+                await AdminService.SendAsync(createRequest);
+            }
+
+            await OnChange.InvokeAsync("");
+
+        }
+        catch (Exception)
+        {
+
+            await OnChange.InvokeAsync("Couldn't create/edit/delete the filmgenre.");
+        }
+    }
+
+    private List<FilmGenreDTO> CreateFilmGenreDTOList()
+    {
+        List<FilmGenreDTO> fgDTOList = new();
+
+        foreach (var genreId in SelectedGenres)
+        {
+            fgDTOList.Add(new FilmGenreDTO(Model.Id, int.Parse(genreId)));
+        }
+        return fgDTOList;
+    }
+
+
+
+}

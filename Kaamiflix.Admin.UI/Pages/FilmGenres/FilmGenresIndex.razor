@@ -1,0 +1,45 @@
+﻿@inject IAdminService AdminService
+<table class="table">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Film</th>
+            <th>Genres</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var film in Films)
+        {
+            <tr>
+                <td style="width:75px">
+                    <div class="d-flex justify-content-start">
+                        <button type="button" class="btn btn-outline-primary me-1" @onclick="@(()=> OnClick.InvokeAsync(new ClickModel(PageType.Edit,film.Id)))">Edit</button>
+                    </div>
+                </td>
+                <td class="fw-bold">@film.Title</td>
+                @foreach (var filmGenre in Model)
+                {
+                    @if (film.Id.Equals(filmGenre.FilmId))
+                    {
+                        <td>@Genres.Where(g=>g.Id.Equals(filmGenre.GenreId)).Select(g=>g.Name).First()</td>
+                    }
+                }
+            </tr>
+        }
+
+    </tbody>
+</table>
+
+@code {
+    [Parameter] public List<FilmGenreDTO> Model { get; set; } = new();
+    [Parameter] public EventCallback<ClickModel> OnClick { get; set; }
+    public List<FilmDTO> Films { get; set; } = new();
+    public List<GenreDTO> Genres { get; set; } = new();
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        Films = await AdminService.GetAsync<FilmDTO>("film?freeOnly=false");
+        Genres = await AdminService.GetAsync<GenreDTO>("genre");
+    }
+}

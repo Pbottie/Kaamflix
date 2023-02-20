@@ -1,0 +1,103 @@
+﻿@inject IAdminService AdminService
+
+<div class="d-xl-flex justify-content-center">
+    <EditForm Model="@Model" OnValidSubmit="OnFormSubmit" class="mb-5 border border-1 border-secondary p-2 w-25">
+        <h4>@Page SimilarFilms</h4>
+        <DataAnnotationsValidator />
+        @if (@Page == PageType.Edit)
+        {
+            <div class="mb-2">
+                <InputText class="form-control" id="Title" @bind-Value=Model.Title disabled></InputText>
+                <ValidationMessage For="@(()=>Model.Title)" />
+            </div>
+            <div class="mb-2">
+                <select class="form-control" multiple @bind="SelectedFilms" style="height: 200px;">
+                    @foreach (var film in Films)
+                    {
+                        @if (film.Id != Model.Id)
+                        {
+                            <option value="@film.Id.ToString()">@film.Title</option>
+                        }
+                    }
+                </select>
+            </div>
+        }
+        @if (Page != PageType.Index)
+        {
+            <button type="submit" class="btn btn-success">Save</button>
+        }
+
+    </EditForm>
+</div>
+
+
+@code {
+    [Parameter] public string[] SelectedFilms { get; set; } = new string[] { };
+    [Parameter] public FilmDTO Model { get; set; } = new();
+    [Parameter] public string Page { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> OnChange { get; set; }
+    public List<FilmDTO> Films { get; set; } = new();
+    public List<SimilarFilmDTO> SimilarFilms { get; set; } = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        Films = await AdminService.GetAsync<FilmDTO>("film");
+        SimilarFilms = await AdminService.GetAsync<SimilarFilmDTO>("similarfilm");
+    }
+
+
+    private async Task OnFormSubmit()
+    {
+        try
+        {
+            var firstSet = SimilarFilms.Select(sf => sf).Where(sf => sf.FilmId.Equals(Model.Id));
+            var secondSet = CreateSimilarFilmDTOList();
+
+            var toDelete = firstSet.ExceptBy(secondSet.Select(x => x.SimilarFilmId), y => y.SimilarFilmId);
+            var toCreate = secondSet.ExceptBy(firstSet.Select(x => x.SimilarFilmId), y => y.SimilarFilmId);
+
+            foreach (var delete in toDelete)
+            {
+                HttpRequestMessage deleteRequest = new HttpRequestMessage
+                    {
+                        Content = JsonContent.Create(delete),
+                        Method = HttpMethod.Delete,
+                        RequestUri = new Uri("similarfilm/", UriKind.Relative)
+                    };
+                await AdminService.SendAsync(deleteRequest);
+            }
+            foreach (var create in toCreate)
+            {
+                HttpRequestMessage createRequest = new HttpRequestMessage
+                    {
+                        Content = JsonContent.Create(create),
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri("similarfilm/", UriKind.Relative)
+                    };
+                await AdminService.SendAsync(createRequest);
+            }
+
+            await OnChange.InvokeAsync("");
+
+        }
+        catch (Exception)
+        {
+
+            await OnChange.InvokeAsync("Couldn't create/edit/delete the similarfilm.");
+        }
+    }
+
+    private List<SimilarFilmDTO> CreateSimilarFilmDTOList()
+    {
+        List<SimilarFilmDTO> fgDTOList = new();
+
+        foreach (var filmId in SelectedFilms)
+        {
+            fgDTOList.Add(new SimilarFilmDTO { FilmId = Model.Id, SimilarFilmId = int.Parse(filmId) });
+        }
+        return fgDTOList;
+    }
+
+
+
+}

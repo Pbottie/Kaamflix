@@ -1,0 +1,83 @@
+﻿@inject IAdminService AdminService
+@if (!string.IsNullOrEmpty(Alert))
+{
+    <div class="d-flex">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Alert
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" @onclick="CloseAlert"></button>
+        </div>
+    </div>
+}
+
+@if (Navigation == PageType.Edit)
+{
+    <ChangeSimilarFilms Page="@Navigation" OnChange="OnChange" Model="@Film" SelectedFilms="@FilmArray"></ChangeSimilarFilms>
+}
+
+<div class="d-flex">
+    <a href="/" class="btn btn-outline-secondary rounded-0 me-1">Home</a>
+    <button type="button" class="btn btn-outline-primary rounded-0 me-1" @onclick="()=>ChangePageType(PageType.Index)">Index</button>
+</div>
+
+<SimilarFilmsIndex OnClick="OnClicks" Model="Model" />
+
+@code {
+    List<SimilarFilmDTO> Model { get; set; } = new();
+    public string Alert { get; set; } = string.Empty;
+    public string Navigation { get; set; } = PageType.Index;
+    public FilmDTO Film { get; set; }
+
+    public string[] FilmArray { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Alert = "";
+        Model = await AdminService.GetAsync<SimilarFilmDTO>("similarfilm");
+    }
+
+    public void ChangePageType(string pageType)
+    {
+        Navigation = pageType;
+    }
+
+    public void CloseAlert()
+    {
+        Alert = string.Empty;
+    }
+
+    async Task OnClicks(ClickModel model)
+    {
+        if (model.PageType.Equals(PageType.Edit))
+        {
+            Film = await AdminService.SingleAsync<FilmDTO>($"film/{model.Id}") ?? new();
+            if (model.PageType.Equals(PageType.Edit))
+            {
+                List<string> tempList = new();
+                foreach (var similarFilmsDTO in Film.SimilarFilms)
+                {
+                    
+                    tempList.Add(similarFilmsDTO.SimilarFilmId.ToString());
+                }
+                FilmArray = tempList.ToArray();
+            }
+        }
+
+        ChangePageType(model.PageType);
+    }
+
+    async Task OnChange(string alert)
+    {
+        try
+        {
+            Alert = alert;
+            Model = await AdminService.GetAsync<SimilarFilmDTO>("similarfilm");
+            ChangePageType(PageType.Index);
+
+        }
+        catch (Exception)
+        {
+            Alert = "Error";
+        }
+    }
+
+}

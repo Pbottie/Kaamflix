@@ -1,0 +1,33 @@
+﻿@page "/"
+@inject IMembershipService membershipService
+
+<h1 class="text-light">All Movies</h1>
+<div class="d-flex flex-wrap justify-content-start mb-2">
+    @foreach (var film in Films)
+    {
+        <FilmCard Film="@film" />
+    }
+
+</div>
+
+<h1 class="text-light">Free Movies</h1>
+<div class="d-flex flex-wrap justify-content-start">
+    @foreach (var film in Films)
+    {
+        @if (film.Free)
+        {
+            <FilmCard Film="@film" />
+        }
+    }
+
+</div>
+
+@code {
+    public List<FilmDTO> Films { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Films = await membershipService.GetFilmsAsync();
+    }
+
+}

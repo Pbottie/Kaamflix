@@ -1,0 +1,18 @@
+﻿@inject NavigationManager NavManager
+<div class="flex-column m-1" style="max-width:350px;">
+    <a href="Film/@Film.Id" class="btn btn-dark">
+        <div class="filmcard card text-bg-dark">
+            <img src="@Film.ImageUrl" class="card-img" alt="Image for Film @Film.Id">
+            <div class="card-img-overlay text-start">
+                <h5 class="position-absolute bottom-0 start-0 card-text mb-0">@Film.Title</h5>
+            </div>
+        </div>
+    </a>
+</div>
+
+
+@code {
+    [Parameter] public FilmDTO Film { get; set; } = new();
+
+
+}
